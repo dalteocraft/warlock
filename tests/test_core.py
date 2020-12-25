@@ -26,7 +26,6 @@ fixture = {
     "additionalProperties": False,
 }
 
-
 complex_fixture = {
     "name": "Mixmaster",
     "properties": {
@@ -52,6 +51,12 @@ child_fixture = {
 
 nameless_fixture = {
     "properties": {"name": {"type": "string"}, "population": {"type": "integer"}},
+    "additionalProperties": False,
+}
+
+default_fixture = {
+    "name": "Country",
+    "properties": {"name": {"type": "string"}, "population": {"type": "integer", "default": -1}},
     "additionalProperties": False,
 }
 
@@ -99,6 +104,17 @@ class TestCore(unittest.TestCase):
         )
         self.assertEqual(
             set(sweden.items()), set([("name", "Sweden"), ("population", 9379116)])
+        )
+
+    def test_default(self):
+        Country1 = warlock.model_factory(default_fixture, name="Contry1")
+        sweden1 = Country1(name="Sweden")
+        self.assertEqual(
+            set(list(sweden1.items())),
+            set([("name", "Sweden"), ("population", -1)]),
+        )
+        self.assertEqual(
+            set(sweden1.items()), set([("name", "Sweden"), ("population", -1)])
         )
 
     def test_update(self):
@@ -285,3 +301,4 @@ class TestCore(unittest.TestCase):
 
         self.assertEqual(mom.children[0].age, 15)
         self.assertEqual(mom.children[1].age, 3)
+

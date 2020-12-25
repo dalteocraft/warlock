@@ -37,6 +37,14 @@ class Model(dict):
 
         self.__dict__["changes"] = {}
         self.__dict__["__original__"] = copy.deepcopy(d)
+    
+    def __getitem__(self, key):
+        try:
+            return super(Model, self).__getitem__(key)
+        except KeyError:
+            if key in self.schema["properties"] and "default" in self.schema["properties"][key]:
+                return self.schema["properties"][key]["default"]
+            raise
 
     def __setitem__(self, key, value):
         mutation = dict(self.items())
@@ -108,6 +116,24 @@ class Model(dict):
 
     def values(self):
         return copy.deepcopy(dict(self)).values()
+    
+    def keys(self):
+        tmpdict = {}
+        for key in super(Model, self).keys():
+            tmpdict[key] = None
+        # Add all properties with default
+        for key, property_schema in self.schema["properties"].items():
+            if key not in tmpdict and "default" in property_schema:
+                tmpdict[key] = None
+        return tmpdict.keys()
+    
+    def __iter__(self):
+        for key in self.keys():
+            yield key
+
+
+
+
 
     # END dict compatibility methods
 
