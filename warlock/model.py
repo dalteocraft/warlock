@@ -126,9 +126,10 @@ class Model(dict):
         for key in super(Model, self).keys():
             tmpdict[key] = None
         # Add all properties with default
-        for key, property_schema in self.schema["properties"].items():
-            if key not in tmpdict and "default" in property_schema:
-                tmpdict[key] = None
+        if "properties" in self.schema:
+            for key, property_schema in self.schema["properties"].items():
+                if key not in tmpdict and "default" in property_schema:
+                    tmpdict[key] = None
         return tmpdict.keys()
     
     def __iter__(self):
