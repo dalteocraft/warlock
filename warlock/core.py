@@ -17,6 +17,7 @@
 import copy
 
 from . import model
+from .resolverdict import ResolverDict
 from jsonschema.validators import validator_for
 
 
@@ -30,6 +31,8 @@ def model_factory(schema, base_class=model.Model, name=None, resolver=None):
     resolver = resolver
 
     class Model(base_class):
+        properties_classes = {}
+
         def __init__(self, *args, **kwargs):
             self.__dict__["schema"] = schema
             self.__dict__["resolver"] = resolver
@@ -39,8 +42,30 @@ def model_factory(schema, base_class=model.Model, name=None, resolver=None):
                 self.__dict__["validator_instance"] = cls(schema, resolver=resolver)
             else:
                 self.__dict__["validator_instance"] = cls(schema)
+            args_dict = dict(*args)
+            _kwargs = {}
+            for key, v in args_dict.items():
+                v = self.map_to_model(key, v)
+                _kwargs[key] = v
+            for key, v in kwargs.items():
+                v = self.map_to_model(key, v)
+                _kwargs[key] = v
 
-            base_class.__init__(self, *args, **kwargs)
+            base_class.__init__(self, _kwargs)
+
+        def map_to_model(self, key, value):
+            # TODO find a way to implement map_to_model on the base class. But map_to_model needs access model_factory function.
+            schema = ResolverDict(self.schema)
+            schema.resolver = self.resolver
+            if "properties" in schema and key in schema["properties"] and schema["properties"][key]["type"] == "object":
+                if key not in Model.properties_classes:
+                    Model.properties_classes[key] = model_factory(schema["properties"][key], base_class=base_class, resolver=resolver)
+                value = Model.properties_classes[key](**value)
+            return value
+        
+        def __setitem__(self, key, value):
+            value = self.map_to_model(key, value)
+            super(Model, self).__setitem__(key, value)
 
     if resolver is not None:
         Model.resolver = resolver

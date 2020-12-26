@@ -55,6 +55,24 @@ nameless_fixture = {
     "additionalProperties": False,
 }
 
+nested_fixture = {
+    "name": "Nested",
+    "required": ["name", "address"],
+    "properties": {
+        "name": {"type": "string"},
+        "address": {
+            "name": "Address",
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["country", "city"],
+            "properties": {
+                "country": {"type": "string"},
+                "city": {"type": "string"}
+            }
+        }
+    }
+}
+
 
 class TestCore(unittest.TestCase):
     def test_create_invalid_object(self):
@@ -285,3 +303,39 @@ class TestCore(unittest.TestCase):
 
         self.assertEqual(mom.children[0].age, 15)
         self.assertEqual(mom.children[1].age, 3)
+    
+    def test_nested(self):
+        Nested = warlock.model_factory(nested_fixture)
+
+        nested = Nested(name="nested", address={"country": "Sweden", "city": "Stockholm"})
+
+        self.assertEqual(
+            set(list(nested.address.items())),
+            set([("country", "Sweden"), ("city", "Stockholm")]),
+        )
+
+    def test_nested_invalid_operation(self):
+        Nested = warlock.model_factory(nested_fixture)
+
+        nested = Nested(name="nested", address={"country": "Sweden", "city": "Stockholm"})
+
+        exc = warlock.InvalidOperation
+        self.assertRaises(exc, setattr, nested.address, "overlord", "Bears")
+    
+    def test_nested_patch_no_changes(self):
+        Nested = warlock.model_factory(nested_fixture)
+
+        nested = Nested(name="nested", address={"country": "Sweden", "city": "Stockholm"})
+
+        self.assertEqual(nested.patch, "[]")
+
+    def test_nested_patch_alter_value(self):
+        Nested = warlock.model_factory(nested_fixture)
+
+        nested = Nested(name="nested", address={"country": "Sweden", "city": "Stockholm"})
+        
+        nested.address["country"] = "Finland"
+        self.assertEqual(
+            json.loads(nested.patch),
+            json.loads('[{"path": "/address/country", "value": "Finland", "op": "replace"}]'),
+        )

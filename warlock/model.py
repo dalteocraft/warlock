@@ -101,7 +101,11 @@ class Model(dict):
             self.validate(mutation)
         except exceptions.ValidationError as exc:
             raise exceptions.InvalidOperation(str(exc))
-        dict.update(self, other)
+        _other = {}
+        for key, v in other.items():
+            v = self.map_to_model(key, v)
+            _other[key] = v
+        dict.update(self, _other)
 
     def items(self):
         return copy.deepcopy(dict(self)).items()
